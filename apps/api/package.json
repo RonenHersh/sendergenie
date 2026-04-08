@@ -1,0 +1,42 @@
+{
+  "name": "@sendergenie/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@fastify/jwt": "^9.0.3",
+    "@fastify/multipart": "^9.0.3",
+    "@fastify/rate-limit": "^10.2.2",
+    "@fastify/websocket": "^11.0.2",
+    "@sendergenie/shared": "*",
+    "@supabase/supabase-js": "^2.49.1",
+    "axios": "^1.8.4",
+    "bullmq": "^5.34.8",
+    "csv-parse": "^5.6.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.40.0",
+    "fastify": "^5.2.1",
+    "ioredis": "^5.4.2",
+    "openai": "^4.86.3",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "postgres": "^3.4.5",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "drizzle-kit": "^0.31.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

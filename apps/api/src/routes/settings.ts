@@ -100,7 +100,6 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
           .set({
             content: body.brand_guide_content,
             conversion_goal: body.conversion_goal,
-            updated_at: new Date(),
           })
           .where(eq(brandGuides.id, existing.id))
       } else {

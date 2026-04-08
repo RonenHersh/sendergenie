@@ -93,59 +93,62 @@ export class WaAPIProvider implements WhatsAppProvider {
   }
 
   parseWebhook(payload: unknown): WebhookEvent[] {
-    const events: WebhookEvent[] = []
-
     if (!payload || typeof payload !== 'object') return [{ type: 'unknown' }]
 
     const data = payload as Record<string, unknown>
 
-    // WaAPI sends events in .data array
-    const rawEvents = Array.isArray(data['data']) ? data['data'] : [data]
+    // WaAPI v1.7+ format: { data: { id, body, type, from, fromMe, ... }, media }
+    const msgData = data['data'] as Record<string, unknown> | undefined
 
-    for (const event of rawEvents) {
-      if (typeof event !== 'object' || !event) continue
-      const e = event as Record<string, unknown>
+    if (msgData && typeof msgData === 'object') {
+      const fromMe = Boolean(msgData['fromMe'])
+      const msgType = String(msgData['type'] ?? '')
 
-      if (e['event'] === 'message' || e['type'] === 'message') {
-        const msg = e['data'] as Record<string, unknown> | undefined
-        if (!msg) continue
+      // Incoming text/chat message
+      if (!fromMe && (msgType === 'chat' || msgType === 'text' || msgType === 'message')) {
+        const idObj = msgData['id'] as Record<string, unknown> | undefined
+        const waMessageId = String(idObj?.['_serialized'] ?? idObj?.['id'] ?? '')
+        // from can be @c.us, @s.whatsapp.net, or @lid
+        const rawFrom = String(msgData['from'] ?? '')
+          .replace('@c.us', '')
+          .replace('@s.whatsapp.net', '')
+          .replace('@lid', '')
+        const from = rawFrom.startsWith('+') ? rawFrom : `+${rawFrom}`
+        const body = String(msgData['body'] ?? '')
 
-        const from = String(msg['from'] ?? '').replace('@c.us', '').replace('@s.whatsapp.net', '')
+        if (rawFrom && body) {
+          return [{
+            type: 'message',
+            data: {
+              wa_message_id: waMessageId,
+              from,
+              body,
+              type: 'text',
+              timestamp: Number(msgData['timestamp'] ?? Date.now() / 1000),
+            } satisfies IncomingWebhookMessage,
+          }]
+        }
+      }
 
-        events.push({
-          type: 'message',
-          data: {
-            wa_message_id: String(msg['id'] ?? ''),
-            from: from.startsWith('+') ? from : `+${from}`,
-            body: String(msg['body'] ?? ''),
-            type: 'text',
-            timestamp: Number(msg['timestamp'] ?? Date.now() / 1000),
-          } satisfies IncomingWebhookMessage,
-        })
-      } else if (e['event'] === 'ack' || e['ack'] !== undefined) {
-        const ack = Number((e['data'] as Record<string, unknown>)?.['ack'] ?? e['ack'])
+      // ACK / status update
+      const ackValue = msgData['ack']
+      if (ackValue !== undefined) {
+        const ack = Number(ackValue)
         const statusMap: Record<number, WebhookStatusUpdate['status']> = {
-          1: 'sent',
-          2: 'delivered',
-          3: 'read',
-          [-1]: 'failed',
+          1: 'sent', 2: 'delivered', 3: 'read', [-1]: 'failed',
         }
         const status = statusMap[ack] ?? 'sent'
-        const msgId = String((e['data'] as Record<string, unknown>)?.['id'] ?? e['id'] ?? '')
-
+        const idObj = msgData['id'] as Record<string, unknown> | undefined
+        const msgId = String(idObj?.['_serialized'] ?? idObj?.['id'] ?? '')
         if (msgId) {
-          events.push({
+          return [{
             type: 'status',
-            data: {
-              wa_message_id: msgId,
-              status,
-              timestamp: Date.now() / 1000,
-            } satisfies WebhookStatusUpdate,
-          })
+            data: { wa_message_id: msgId, status, timestamp: Date.now() / 1000 } satisfies WebhookStatusUpdate,
+          }]
         }
       }
     }
 
-    return events.length ? events : [{ type: 'unknown' }]
+    return [{ type: 'unknown' }]
   }
 }

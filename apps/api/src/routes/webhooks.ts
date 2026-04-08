@@ -80,7 +80,8 @@ async function handleIncomingMessage(
   workspaceId: string,
   data: { wa_message_id: string; from: string; name?: string; body: string; type: string; timestamp: number }
 ): Promise<void> {
-  const phone = normalizePhone(data.from)
+  // If from is a WaAPI JID (contains @), use as-is; otherwise normalize
+  const phone = data.from.includes('@') ? data.from : normalizePhone(data.from)
   if (!phone) return
 
   // Opt-out detection

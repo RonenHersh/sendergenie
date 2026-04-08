@@ -35,9 +35,11 @@ export class WaAPIProvider implements WhatsAppProvider {
 
   async sendText(to: string, message: string): Promise<SendTextResult> {
     try {
+      // If 'to' already contains @, use as-is (WaAPI JID format)
+      const chatId = to.includes('@') ? to : `${to.replace('+', '')}@c.us`
       const res = await axios.post(
         `${this.baseUrl}/client/action/send-message`,
-        { chatId: `${to.replace('+', '')}@c.us`, message },
+        { chatId, message },
         { headers: this.headers }
       )
 
@@ -119,7 +121,11 @@ export class WaAPIProvider implements WhatsAppProvider {
     const fromMe = msgData['fromMe'] === true
     const msgType = String(msgData['type'] ?? '')
     const body = String(msgData['body'] ?? '')
-    const rawFrom = String(msgData['from'] ?? '')
+
+    // WaAPI may return @lid (internal ID) instead of @c.us (phone number)
+    // Use the raw JID as-is for sending back — WaAPI accepts both formats
+    const rawFromJid = String(msgData['from'] ?? '')
+    const rawFrom = rawFromJid
       .replace(/@c\.us$/, '')
       .replace(/@s\.whatsapp\.net$/, '')
       .replace(/@lid$/, '')
@@ -128,7 +134,8 @@ export class WaAPIProvider implements WhatsAppProvider {
     if (!fromMe && rawFrom && body && (msgType === 'chat' || msgType === 'text' || msgType === 'message')) {
       const idObj = msgData['id'] as Record<string, unknown> | undefined
       const waMessageId = String(idObj?.['_serialized'] ?? idObj?.['id'] ?? '')
-      const from = rawFrom.startsWith('+') ? rawFrom : `+${rawFrom}`
+      // Keep original JID for sending (WaAPI needs it for @lid contacts)
+      const from = rawFromJid || (rawFrom.startsWith('+') ? rawFrom : `+${rawFrom}`)
 
       return [{
         type: 'message',

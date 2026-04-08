@@ -35,7 +35,7 @@ export default function InboxPage() {
       setConversations(convs)
       return convs
     },
-    refetchInterval: 20_000,
+    refetchInterval: 5_000,
   })
 
   const activeConv = conversations.find(c => c.id === activeConversationId)

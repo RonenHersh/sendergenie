@@ -3,133 +3,87 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Zap, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Zap, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '../../../store/auth'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuthStore()
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [showPw, setShowPw]     = useState(false)
+  const [loading, setLoading]   = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
       await login(email, password)
       router.push('/inbox')
     } catch {
-      toast.error('אימייל או סיסמה שגויים')
+      toast.error('אימייל או סיסמא שגויים')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen gradient-hero flex" dir="rtl">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex flex-1 flex-col justify-between p-12">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl gradient-green flex items-center justify-center">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-xl text-white">SenderGenie</span>
-        </Link>
+    <div style={{ minHeight: '100vh', backgroundColor: '#030712', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui, sans-serif' }} dir="rtl">
+      <div style={{ width: '100%', maxWidth: '420px' }}>
 
-        <div>
-          <div className="space-y-4 mb-12">
-            {[
-              { emoji: '📤', text: 'שלח אלפי הודעות WhatsApp עם עיכוב חכם' },
-              { emoji: '🤖', text: 'AI שעונה ומחלץ לידים אוטומטית' },
-              { emoji: '📊', text: 'Delivered / Read / Replied בזמן אמת' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 glass rounded-xl px-4 py-3">
-                <span className="text-2xl">{item.emoji}</span>
-                <span className="text-gray-200 text-sm">{item.text}</span>
-              </div>
-            ))}
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #25d366, #128c7e)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Zap style={{ width: '26px', height: '26px', color: 'white' }} />
           </div>
-          <p className="text-gray-600 text-sm">מאובטח בהצפנה מלאה • GDPR מוכן</p>
+          <h1 style={{ color: 'white', fontSize: '24px', fontWeight: '700', margin: '0 0 6px' }}>ברוך הבא ל-SenderGenie</h1>
+          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>התחבר לחשבון שלך</p>
         </div>
-      </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center justify-center gap-2 mb-10">
-            <div className="w-9 h-9 rounded-xl gradient-green flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
+        {/* Card */}
+        <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '32px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            <div>
+              <label style={{ display: 'block', color: '#9ca3af', fontSize: '13px', marginBottom: '6px' }}>אימייל</label>
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                required placeholder="your@email.com" dir="ltr"
+                style={{ width: '100%', backgroundColor: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px 14px', color: 'white', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                onFocus={e => (e.target.style.borderColor = '#25d366')}
+                onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+              />
             </div>
-            <span className="font-bold text-xl text-white">SenderGenie</span>
-          </div>
 
-          <div className="glass rounded-2xl p-8 border border-white/10">
-            <h2 className="text-2xl font-bold text-white mb-1">ברוך הבא בחזרה 👋</h2>
-            <p className="text-gray-400 text-sm mb-8">כנס לחשבון שלך וחזור לעבוד</p>
-
-            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">אימייל</label>
+            <div>
+              <label style={{ display: 'block', color: '#9ca3af', fontSize: '13px', marginBottom: '6px' }}>סיסמא</label>
+              <div style={{ position: 'relative' }}>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  dir="ltr"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-green-500 focus:bg-white/8 transition-all placeholder:text-gray-600"
-                  placeholder="your@email.com"
+                  type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                  required placeholder="לפחות 8 תווים" dir="ltr"
+                  style={{ width: '100%', backgroundColor: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px 40px 12px 14px', color: 'white', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                  onFocus={e => (e.target.style.borderColor = '#25d366')}
+                  onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
                 />
+                <button type="button" onClick={() => setShowPw(v => !v)}
+                  style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0 }}>
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">סיסמה</label>
-                <div className="relative">
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    dir="ltr"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-green-500 transition-all placeholder:text-gray-600 pl-10"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-                  >
-                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full gradient-green text-white font-semibold py-3 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    נכנס...
-                  </span>
-                ) : (
-                  <>כניסה <ArrowRight className="w-4 h-4" /></>
-                )}
-              </button>
-            </form>
-
-            <p className="text-center text-sm text-gray-500 mt-6">
-              אין לך חשבון?{' '}
-              <Link href="/signup" className="text-green-400 hover:text-green-300 font-medium">
-                הרשמה חינמית
-              </Link>
-            </p>
-          </div>
+            <button type="submit" disabled={loading}
+              style={{ width: '100%', padding: '13px', borderRadius: '12px', background: 'linear-gradient(135deg, #25d366, #128c7e)', color: 'white', fontWeight: '600', fontSize: '15px', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '4px', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              {loading ? 'מתחבר...' : 'כניסה לחשבון →'}
+            </button>
+          </form>
         </div>
+
+        <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '14px', marginTop: '20px' }}>
+          אין לך חשבון?{' '}
+          <Link href="/signup" style={{ color: '#25d366', textDecoration: 'none', fontWeight: '500' }}>הירשם חינם</Link>
+        </p>
       </div>
     </div>
   )

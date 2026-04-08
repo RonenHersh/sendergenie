@@ -123,19 +123,24 @@ export class WaAPIProvider implements WhatsAppProvider {
     const body = String(msgData['body'] ?? '')
 
     // WaAPI may return @lid (internal ID) instead of @c.us (phone number)
-    // Use the raw JID as-is for sending back — WaAPI accepts both formats
     const rawFromJid = String(msgData['from'] ?? '')
-    const rawFrom = rawFromJid
-      .replace(/@c\.us$/, '')
-      .replace(/@s\.whatsapp\.net$/, '')
-      .replace(/@lid$/, '')
+    const isLid = rawFromJid.endsWith('@lid')
+
+    // For @lid contacts, use the JID directly as phone (WaAPI accepts it for sending)
+    // For @c.us contacts, extract the phone number
+    const from = isLid
+      ? rawFromJid  // keep full JID e.g. "42924507185161@lid"
+      : (() => {
+          const num = rawFromJid.replace(/@c\.us$/, '').replace(/@s\.whatsapp\.net$/, '')
+          return num.startsWith('+') ? num : `+${num}`
+        })()
+
+    const rawFrom = from // used for empty check below
 
     // Incoming text/chat message
     if (!fromMe && rawFrom && body && (msgType === 'chat' || msgType === 'text' || msgType === 'message')) {
       const idObj = msgData['id'] as Record<string, unknown> | undefined
       const waMessageId = String(idObj?.['_serialized'] ?? idObj?.['id'] ?? '')
-      // Keep original JID for sending (WaAPI needs it for @lid contacts)
-      const from = rawFromJid || (rawFrom.startsWith('+') ? rawFrom : `+${rawFrom}`)
 
       return [{
         type: 'message',

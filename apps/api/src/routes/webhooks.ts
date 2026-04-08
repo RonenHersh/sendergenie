@@ -78,7 +78,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
 
 async function handleIncomingMessage(
   workspaceId: string,
-  data: { wa_message_id: string; from: string; body: string; type: string; timestamp: number }
+  data: { wa_message_id: string; from: string; name?: string; body: string; type: string; timestamp: number }
 ): Promise<void> {
   const phone = normalizePhone(data.from)
   if (!phone) return
@@ -102,9 +102,11 @@ async function handleIncomingMessage(
   if (!contact) {
     const [newContact] = await db
       .insert(contacts)
-      .values({ workspace_id: workspaceId, phone, tags: [] })
+      .values({ workspace_id: workspaceId, phone, name: data.name, tags: [] })
       .returning()
     contact = newContact!
+  } else if (data.name && !contact.name) {
+    await db.update(contacts).set({ name: data.name }).where(eq(contacts.id, contact.id))
   }
 
   // Find or create conversation

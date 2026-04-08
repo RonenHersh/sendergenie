@@ -141,12 +141,15 @@ export class WaAPIProvider implements WhatsAppProvider {
     if (!fromMe && rawFrom && body && (msgType === 'chat' || msgType === 'text' || msgType === 'message')) {
       const idObj = msgData['id'] as Record<string, unknown> | undefined
       const waMessageId = String(idObj?.['_serialized'] ?? idObj?.['id'] ?? '')
+      const _data = msgData['_data'] as Record<string, unknown> | undefined
+      const name = String(_data?.['notifyName'] ?? msgData['notifyName'] ?? '').trim() || undefined
 
       return [{
         type: 'message',
         data: {
           wa_message_id: waMessageId,
           from,
+          name,
           body,
           type: 'text',
           timestamp: Number(msgData['timestamp'] ?? Date.now() / 1000),

@@ -9,6 +9,7 @@ export interface SendMediaResult extends SendTextResult {}
 export interface IncomingWebhookMessage {
   wa_message_id: string
   from: string         // phone in E.164
+  name?: string        // contact display name
   body: string
   type: 'text' | 'image' | 'audio' | 'video' | 'document'
   media_url?: string

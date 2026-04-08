@@ -50,6 +50,7 @@ export default function InboxPage() {
       return res.data.messages
     },
     enabled: !!activeConversationId,
+    refetchInterval: 5000,
   })
 
   useEffect(() => {

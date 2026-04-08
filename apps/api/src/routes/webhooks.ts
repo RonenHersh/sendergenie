@@ -52,11 +52,15 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(404).send({ error: 'Workspace not found' })
     }
 
+    console.log('[Webhook] RAW PAYLOAD:', JSON.stringify(request.body, null, 2))
+
     const provider = getWhatsAppProvider(workspace)
     const events = provider.parseWebhook(
       request.body,
       request.headers as Record<string, string>
     )
+
+    console.log('[Webhook] PARSED EVENTS:', JSON.stringify(events, null, 2))
 
     for (const event of events) {
       if (event.type === 'message') {

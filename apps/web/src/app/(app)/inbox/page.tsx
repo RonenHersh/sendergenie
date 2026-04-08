@@ -10,7 +10,7 @@ import { ConversationListItem } from '../../../components/chat/ConversationListI
 import { ChatBubble } from '../../../components/chat/ChatBubble'
 import { TypingIndicator } from '../../../components/chat/TypingIndicator'
 import { MessageInput } from '../../../components/chat/MessageInput'
-import { getInitials } from '../../../lib/utils'
+import { getInitials, formatPhone } from '../../../lib/utils'
 import type { Conversation, Message } from '@sendergenie/shared'
 import toast from 'react-hot-toast'
 
@@ -155,7 +155,7 @@ export default function InboxPage() {
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-sm font-semibold text-white truncate">{contactName}</h2>
-              <p className="text-xs text-gray-500 truncate">{activeConv.contact?.phone}</p>
+              <p className="text-xs text-gray-500 truncate">{formatPhone(activeConv.contact?.phone)}</p>
             </div>
 
             <div className="flex items-center gap-2">

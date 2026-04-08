@@ -48,6 +48,15 @@ export function getInitials(name?: string): string {
 }
 
 /**
+ * Format phone for display — hide raw @lid JIDs
+ */
+export function formatPhone(phone?: string): string {
+  if (!phone) return ''
+  if (phone.includes('@')) return 'WhatsApp'
+  return phone
+}
+
+/**
  * Detect text direction (RTL for Hebrew)
  */
 export function getTextDir(text: string): 'rtl' | 'ltr' {

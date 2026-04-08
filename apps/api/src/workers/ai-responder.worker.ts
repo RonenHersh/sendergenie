@@ -106,14 +106,12 @@ export function startAIResponderWorker(): Worker {
         : 'None yet'
 
       const systemPrompt = `
-You are a WhatsApp sales assistant for ${workspace.name}.
+${workspace.ai_system_prompt ? workspace.ai_system_prompt + '\n' : `You are a WhatsApp sales assistant for ${workspace.name}.`}
 ${brandGuide?.content ?? ''}
 
 CRITICAL RULES:
-- Respond in the SAME language the customer uses (Hebrew or English)
 - Keep replies SHORT — 1-3 sentences max, WhatsApp style
 - Be warm, human, NOT robotic
-- Never start with "שלום" or "Hello" every message
 - Your goal: ${brandGuide?.conversion_goal ?? 'help the customer and capture their contact details'}
 - When you learn the customer's name or email, call the extract_lead function
 

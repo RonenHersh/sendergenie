@@ -97,11 +97,13 @@ export class WaAPIProvider implements WhatsAppProvider {
 
     const top = payload as Record<string, unknown>
 
-    // WaAPI can send: { data: { ... } } OR the message object directly
+    // WaAPI can send: { data: {...} } OR { message: {...} } OR the message object directly
     const msgData = (
-      top['data'] && typeof top['data'] === 'object'
-        ? top['data']
-        : top
+      top['message'] && typeof top['message'] === 'object'
+        ? top['message']
+        : top['data'] && typeof top['data'] === 'object'
+          ? top['data']
+          : top
     ) as Record<string, unknown>
 
     console.log('[WaAPI] msgData keys:', Object.keys(msgData).join(', '))

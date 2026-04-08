@@ -106,6 +106,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
           phone: contact.phone,
           body: body.body,
           media_url: body.media_url,
+          message_id: message!.id,
         })
       }
     }

@@ -179,6 +179,7 @@ export interface SendMessageJob {
   media_url?: string
   campaign_id?: string
   message_job_id?: string
+  message_id?: string
 }
 
 export interface AIReplyJob {

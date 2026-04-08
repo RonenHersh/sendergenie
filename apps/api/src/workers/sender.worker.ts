@@ -12,7 +12,7 @@ import { Worker } from 'bullmq'
 import { redis } from '../lib/redis.js'
 import { db } from '../db/index.js'
 import { eq, and } from 'drizzle-orm'
-import { workspaces, contacts, blacklist, messageJobs } from '../db/schema.js'
+import { workspaces, contacts, blacklist, messageJobs, messages } from '../db/schema.js'
 import { getWhatsAppProvider } from '../providers/whatsapp/index.js'
 import { interpolateTemplate } from '@sendergenie/shared'
 import type { SendMessageJob } from '@sendergenie/shared'
@@ -26,7 +26,7 @@ export function startSenderWorker(): Worker {
   const worker = new Worker<SendMessageJob>(
     'message-send',
     async (job) => {
-      const { workspace_id, contact_id, phone, body, media_url, campaign_id, message_job_id } =
+      const { workspace_id, contact_id, phone, body, media_url, campaign_id, message_job_id, message_id } =
         job.data
 
       // ── 1. Load workspace ──────────────────────────────────────────────────
@@ -110,6 +110,13 @@ export function startSenderWorker(): Worker {
               sent_at: new Date(),
             })
             .where(eq(messageJobs.id, message_job_id))
+        }
+
+        if (message_id) {
+          await db
+            .update(messages)
+            .set({ status: 'sent', wa_message_id: result.wa_message_id })
+            .where(eq(messages.id, message_id))
         }
 
         // Increment daily counter (expires at midnight)

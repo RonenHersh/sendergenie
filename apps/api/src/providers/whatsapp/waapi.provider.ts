@@ -97,20 +97,19 @@ export class WaAPIProvider implements WhatsAppProvider {
 
     const top = payload as Record<string, unknown>
 
-    // Unwrap nested payload: could be { message: { message: {...} } } or { data: {...} } or flat
+    // WaAPI v1.7+ sends: { event, instanceId, data: { message: {...}, media: null } }
+    // Unwrap: follow data → message chain until we find body/from/type
     function unwrap(obj: Record<string, unknown>): Record<string, unknown> {
-      if (obj['message'] && typeof obj['message'] === 'object') {
-        const inner = obj['message'] as Record<string, unknown>
-        // If still nested (has message key again), go deeper
-        if (inner['message'] && typeof inner['message'] === 'object') {
-          return inner['message'] as Record<string, unknown>
-        }
-        return inner
+      let cur = obj
+      // Follow 'data' key if present
+      if (cur['data'] && typeof cur['data'] === 'object') {
+        cur = cur['data'] as Record<string, unknown>
       }
-      if (obj['data'] && typeof obj['data'] === 'object') {
-        return obj['data'] as Record<string, unknown>
+      // Follow 'message' key repeatedly
+      while (cur['message'] && typeof cur['message'] === 'object') {
+        cur = cur['message'] as Record<string, unknown>
       }
-      return obj
+      return cur
     }
     const msgData = unwrap(top)
 

@@ -85,10 +85,15 @@ export function startAIResponderWorker(): Worker {
         .limit(20)
 
       // ── 3b. Human takeover check ───────────────────────────────────────────
-      // If an agent has ever replied manually, pause AI for this conversation
-      const agentReplied = history.some(m => m.sender_type === 'agent')
-      if (agentReplied) {
-        console.log(`[AIWorker] Skipping — agent has replied in conversation ${conversation_id}`)
+      // If an agent replied AFTER the last time AI was manually re-enabled,
+      // pause AI. We detect "re-enabled" by checking if the last bot message
+      // is newer than the last agent message.
+      const lastAgentMsg = [...history].reverse().find(m => m.sender_type === 'agent')
+      const lastBotMsg   = [...history].reverse().find(m => m.sender_type === 'bot')
+      const agentTookOver = lastAgentMsg &&
+        (!lastBotMsg || new Date(lastAgentMsg.created_at) > new Date(lastBotMsg.created_at))
+      if (agentTookOver) {
+        console.log(`[AIWorker] Skipping — agent has taken over conversation ${conversation_id}`)
         return
       }
 

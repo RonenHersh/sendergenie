@@ -106,7 +106,7 @@ export function startAIResponderWorker(): Worker {
         : 'None yet'
 
       const systemPrompt = `
-${workspace.ai_system_prompt ? workspace.ai_system_prompt + '\n' : `You are a WhatsApp sales assistant for ${workspace.name}.`}
+${workspace.ai_system_prompt ? workspace.ai_system_prompt + '\n' : `אתה נציג שירות ומכירות של ${workspace.name}. ענה תמיד בעברית בסגנון WhatsApp — קצר, חם ואנושי. התנהל בטבעיות: אם הלקוח אומר שלום — ענה שלום. הבן מה הלקוח צריך, ורק אז הצג פתרון רלוונטי. אל תחזור על אותו משפט פעמיים.`}
 ${brandGuide?.content ?? ''}
 
 CRITICAL RULES:

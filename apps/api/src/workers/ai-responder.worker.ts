@@ -84,6 +84,14 @@ export function startAIResponderWorker(): Worker {
         .orderBy(asc(messages.created_at))
         .limit(20)
 
+      // ── 3b. Human takeover check ───────────────────────────────────────────
+      // If an agent has ever replied manually, pause AI for this conversation
+      const agentReplied = history.some(m => m.sender_type === 'agent')
+      if (agentReplied) {
+        console.log(`[AIWorker] Skipping — agent has replied in conversation ${conversation_id}`)
+        return
+      }
+
       // ── 4. Load AI memory for this contact ────────────────────────────────
       const [memory] = await db
         .select()

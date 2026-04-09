@@ -15,6 +15,62 @@ const SECTIONS = [
   { id: 'billing',  icon: Shield,     label: 'תכנית ותשלום' },
 ]
 
+const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+const TIMES = Array.from({ length: 29 }, (_, i) => {
+  const h = Math.floor(i / 2) + 7
+  const m = i % 2 === 0 ? '00' : '30'
+  return `${String(h).padStart(2, '0')}:${m}`
+})
+
+type DaySchedule = { open: boolean; from: string; to: string }
+
+function HoursPicker({ value, onChange }: {
+  value: DaySchedule[]
+  onChange: (v: DaySchedule[]) => void
+}) {
+  return (
+    <div className="space-y-2">
+      {DAYS.map((day, i) => {
+        const d = value[i]!
+        return (
+          <div key={day} className={`flex items-center gap-3 rounded-xl px-3 py-2 border transition-all ${d.open ? 'border-green-500/30 bg-green-500/5' : 'border-white/5 bg-gray-800/50'}`}>
+            <button onClick={() => {
+              const next = [...value]
+              next[i] = { ...d, open: !d.open }
+              onChange(next)
+            }} className={`w-8 h-8 rounded-lg text-xs font-bold flex-shrink-0 transition-all ${d.open ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-500'}`}>
+              {day.slice(0, 1)}
+            </button>
+            <span className="text-xs text-gray-400 w-10 flex-shrink-0">{day}</span>
+            {d.open ? (
+              <div className="flex items-center gap-2 flex-1">
+                <select value={d.from} onChange={e => { const next = [...value]; next[i] = { ...d, from: e.target.value }; onChange(next) }}
+                  className="bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-white text-xs outline-none focus:border-green-500">
+                  {TIMES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <span className="text-gray-600 text-xs">—</span>
+                <select value={d.to} onChange={e => { const next = [...value]; next[i] = { ...d, to: e.target.value }; onChange(next) }}
+                  className="bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-white text-xs outline-none focus:border-green-500">
+                  {TIMES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            ) : (
+              <span className="text-xs text-gray-600 flex-1">סגור</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function scheduleToText(schedule: DaySchedule[]): string {
+  const open = schedule
+    .map((d, i) => d.open ? `${DAYS[i]} ${d.from}-${d.to}` : null)
+    .filter(Boolean)
+  return open.join(', ')
+}
+
 const GOAL_OPTIONS = [
   { value: 'appointments', label: 'תאום פגישות / הדגמות' },
   { value: 'sales',        label: 'מכירות ישירות' },
@@ -27,7 +83,7 @@ function buildSystemPrompt(fields: {
   businessName: string
   description: string
   prices: string
-  hours: string
+  hours: string  // pre-formatted string
   address: string
   goal: string
   contactPhone: string
@@ -71,12 +127,14 @@ export default function SettingsPage() {
     businessName: workspace?.name ?? '',
     description: '',
     prices: '',
-    hours: '',
     address: '',
     goal: 'appointments',
     contactPhone: '',
     extraInfo: '',
   })
+  const [schedule, setSchedule] = useState<DaySchedule[]>(
+    DAYS.map((_, i) => ({ open: i < 5, from: '08:00', to: '17:00' }))
+  )
 
   useQuery({
     queryKey: ['settings'],
@@ -100,7 +158,8 @@ export default function SettingsPage() {
 
   const saveAiMutation = useMutation({
     mutationFn: async () => {
-      const prompt = buildSystemPrompt({ ...aiFields, businessName: aiFields.businessName || workspace?.name || '' })
+      const hours = scheduleToText(schedule)
+      const prompt = buildSystemPrompt({ ...aiFields, hours, businessName: aiFields.businessName || workspace?.name || '' })
       await api.post('/api/settings/ai', {
         ai_enabled: aiEnabled,
         ai_system_prompt: prompt,
@@ -247,13 +306,12 @@ export default function SettingsPage() {
               <h3 className="font-semibold text-white text-sm">פרטי העסק</h3>
 
               {[
-                { key: 'businessName',  label: 'שם העסק',                    placeholder: 'שר טכנולוגיות' },
-                { key: 'description',   label: 'מה אתם מוכרים / מציעים?',    placeholder: 'מכונות טיח גבס ושחור' },
-                { key: 'prices',        label: 'מחירים (אופציונלי)',           placeholder: 'החל מ-26,000 ₪' },
-                { key: 'hours',         label: 'שעות פתיחה',                 placeholder: 'א-ה 08:00-17:00' },
-                { key: 'address',       label: 'כתובת (אופציונלי)',           placeholder: 'האורג 7, נתניה' },
-                { key: 'contactPhone',  label: 'טלפון שירות / תיאום',        placeholder: '054-0000000' },
-                { key: 'extraInfo',     label: 'מידע נוסף (אופציונלי)',       placeholder: 'מידע שחשוב לבוט לדעת...' },
+                { key: 'businessName',  label: 'שם העסק',                 placeholder: 'שר טכנולוגיות' },
+                { key: 'description',   label: 'מה אתם מוכרים / מציעים?', placeholder: 'מכונות טיח גבס ושחור' },
+                { key: 'prices',        label: 'מחירים (אופציונלי)',        placeholder: 'החל מ-26,000 ₪' },
+                { key: 'address',       label: 'כתובת (אופציונלי)',        placeholder: 'האורג 7, נתניה' },
+                { key: 'contactPhone',  label: 'טלפון שירות / תיאום',     placeholder: '054-0000000' },
+                { key: 'extraInfo',     label: 'מידע נוסף (אופציונלי)',    placeholder: 'מידע שחשוב לבוט לדעת...' },
               ].map(f => (
                 <div key={f.key}>
                   <label className="block text-xs font-medium text-gray-400 mb-1.5">{f.label}</label>
@@ -266,6 +324,12 @@ export default function SettingsPage() {
                   />
                 </div>
               ))}
+
+              {/* Hours picker */}
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">שעות פתיחה</label>
+                <HoursPicker value={schedule} onChange={setSchedule} />
+              </div>
 
               {/* Goal */}
               <div>

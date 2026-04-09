@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   MessageSquare, Megaphone, Users, BarChart2,
-  Settings, Bot, LogOut, Zap, Bell
+  Settings, Bot, LogOut, Zap, Bell, CalendarDays
 } from 'lucide-react'
 import { useAuthStore } from '../../store/auth'
 import { useInboxStore } from '../../store/inbox'
@@ -15,12 +15,13 @@ import { Toaster } from 'react-hot-toast'
 const queryClient = new QueryClient()
 
 const NAV_ITEMS = [
-  { href: '/inbox',     icon: MessageSquare, label: 'הודעות' },
-  { href: '/campaigns', icon: Megaphone,     label: 'קמפיינים' },
-  { href: '/contacts',  icon: Users,          label: 'אנשי קשר' },
-  { href: '/ai',        icon: Bot,            label: 'AI בוט' },
-  { href: '/analytics', icon: BarChart2,      label: 'אנליטיקס' },
-  { href: '/settings',  icon: Settings,       label: 'הגדרות' },
+  { href: '/inbox',        icon: MessageSquare, label: 'הודעות' },
+  { href: '/appointments', icon: CalendarDays,  label: 'פגישות' },
+  { href: '/campaigns',    icon: Megaphone,     label: 'קמפיינים' },
+  { href: '/contacts',     icon: Users,          label: 'אנשי קשר' },
+  { href: '/ai',           icon: Bot,            label: 'AI בוט' },
+  { href: '/analytics',    icon: BarChart2,      label: 'אנליטיקס' },
+  { href: '/settings',     icon: Settings,       label: 'הגדרות' },
 ]
 
 function AppShell({ children }: { children: React.ReactNode }) {

@@ -31,6 +31,7 @@ export interface WhatsAppProvider {
   sendText(to: string, message: string): Promise<SendTextResult>
   sendImage(to: string, imageUrl: string, caption?: string): Promise<SendMediaResult>
   sendDocument(to: string, docUrl: string, filename: string): Promise<SendMediaResult>
+  sendTyping?(to: string): Promise<void>
   parseWebhook(payload: unknown, headers?: Record<string, string>): WebhookEvent[]
   verifyWebhookChallenge?(query: Record<string, string>): string | null
 }

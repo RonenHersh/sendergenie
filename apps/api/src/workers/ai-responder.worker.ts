@@ -128,7 +128,13 @@ ${memory?.extracted_name ? `Contact's name: ${memory.extracted_name}` : ''}
         })),
       ]
 
-      // ── 7. Call GPT-4o ─────────────────────────────────────────────────────
+      // ── 7. Send typing indicator ───────────────────────────────────────────
+      if (contact?.phone) {
+        const provider = getWhatsAppProvider(workspace)
+        await provider.sendTyping?.(contact.phone)
+      }
+
+      // ── 8. Call GPT-4o ─────────────────────────────────────────────────────
       const response = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: chatMessages,
@@ -141,7 +147,7 @@ ${memory?.extracted_name ? `Contact's name: ${memory.extracted_name}` : ''}
       const choice = response.choices[0]
       if (!choice) return
 
-      // ── 8. Handle lead extraction function call ────────────────────────────
+      // ── 9. Handle lead extraction function call ────────────────────────────
       if (choice.message.tool_calls?.length) {
         for (const toolCall of choice.message.tool_calls) {
           if (toolCall.function.name === 'extract_lead') {

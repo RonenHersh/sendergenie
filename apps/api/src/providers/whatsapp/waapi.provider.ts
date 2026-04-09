@@ -73,6 +73,19 @@ export class WaAPIProvider implements WhatsAppProvider {
     }
   }
 
+  async sendTyping(to: string): Promise<void> {
+    try {
+      const chatId = to.includes('@') ? to : `${to.replace('+', '')}@c.us`
+      await axios.post(
+        `${this.baseUrl}/client/action/send-presence`,
+        { chatId, presence: 'composing' },
+        { headers: this.headers }
+      )
+    } catch {
+      // Typing indicator is best-effort — ignore errors
+    }
+  }
+
   async sendDocument(to: string, docUrl: string, filename: string): Promise<SendMediaResult> {
     try {
       const res = await axios.post(

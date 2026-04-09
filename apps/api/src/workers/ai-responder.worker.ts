@@ -11,7 +11,7 @@ import { db } from '../db/index.js'
 import { eq, and, asc } from 'drizzle-orm'
 import {
   workspaces, contacts, conversations, messages,
-  aiMemory, leads, brandGuides, messageJobs,
+  aiMemory, leads, brandGuides, messageJobs, appointments,
 } from '../db/schema.js'
 import { getWhatsAppProvider } from '../providers/whatsapp/index.js'
 import { messageSendQueue } from '../lib/queues.js'
@@ -19,6 +19,22 @@ import type { AIReplyJob } from '@sendergenie/shared'
 import { isOptOutMessage } from '@sendergenie/shared'
 
 const openai = new OpenAI({ apiKey: process.env['OPENAI_API_KEY'] })
+
+const EXTRACT_APPOINTMENT_TOOL: OpenAI.Chat.ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'extract_appointment',
+    description: 'Call this when the customer has CONFIRMED a specific date and time for a meeting/demo. Only call when both date AND time are explicitly confirmed.',
+    parameters: {
+      type: 'object',
+      required: ['scheduled_at'],
+      properties: {
+        scheduled_at: { type: 'string', description: 'ISO 8601 datetime of the appointment, e.g. 2025-04-14T10:00:00' },
+        notes: { type: 'string', description: 'Any additional notes about the appointment' },
+      },
+    },
+  },
+}
 
 const EXTRACT_LEAD_TOOL: OpenAI.Chat.ChatCompletionTool = {
   type: 'function',
@@ -127,6 +143,7 @@ CRITICAL RULES:
 - Be warm, human, NOT robotic
 - Your goal: ${brandGuide?.conversion_goal ?? 'help the customer and capture their contact details'}
 - When you learn the customer's name or email, call the extract_lead function
+- When the customer confirms a SPECIFIC date AND time for a meeting, call extract_appointment AND tell them: "כשתגיע תבקש לדבר עם ${(workspace as Record<string, unknown>)['ai_agent_name'] ?? 'הנציג שלנו'}"
 
 Known facts about this contact:
 ${knownFacts}
@@ -151,7 +168,7 @@ ${memory?.extracted_name ? `Contact's name: ${memory.extracted_name}` : ''}
       const response = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: chatMessages,
-        tools: [EXTRACT_LEAD_TOOL],
+        tools: [EXTRACT_LEAD_TOOL, EXTRACT_APPOINTMENT_TOOL],
         tool_choice: 'auto',
         temperature: 0.7,
         max_tokens: 200,
@@ -209,6 +226,29 @@ ${memory?.extracted_name ? `Contact's name: ${memory.extracted_name}` : ''}
             })
 
             console.log(`[AIWorker] Lead captured for contact ${contact_id}:`, extracted)
+          }
+
+          if (toolCall.function.name === 'extract_appointment') {
+            const appt = JSON.parse(toolCall.function.arguments) as {
+              scheduled_at: string
+              notes?: string
+            }
+
+            const agentName = (workspace as Record<string, unknown>)['ai_agent_name'] as string | undefined
+
+            await db.insert(appointments).values({
+              workspace_id,
+              contact_id,
+              conversation_id,
+              contact_name: memory?.extracted_name ?? contact?.name,
+              contact_phone: contact?.phone,
+              scheduled_at: new Date(appt.scheduled_at),
+              agent_name: agentName,
+              notes: appt.notes,
+              status: 'pending',
+            }).onConflictDoNothing()
+
+            console.log(`[AIWorker] Appointment booked for contact ${contact_id}:`, appt.scheduled_at)
           }
         }
       }

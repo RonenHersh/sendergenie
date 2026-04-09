@@ -231,6 +231,25 @@ export const leads = pgTable('leads', {
   index('leads_workspace_idx').on(t.workspace_id),
 ])
 
+// ─── Appointments ─────────────────────────────────────────────────────────────
+
+export const appointments = pgTable('appointments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  workspace_id: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  contact_id: uuid('contact_id').notNull().references(() => contacts.id, { onDelete: 'cascade' }),
+  conversation_id: uuid('conversation_id').references(() => conversations.id, { onDelete: 'set null' }),
+  contact_name: text('contact_name'),
+  contact_phone: text('contact_phone'),
+  scheduled_at: timestamp('scheduled_at', { withTimezone: true }).notNull(),
+  agent_name: text('agent_name'),
+  notes: text('notes'),
+  status: text('status').default('pending').notNull(),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('appointments_workspace_idx').on(t.workspace_id),
+  index('appointments_scheduled_idx').on(t.scheduled_at),
+])
+
 // ─── Webhook Configs ──────────────────────────────────────────────────────────
 
 export const webhookConfigs = pgTable('webhook_configs', {

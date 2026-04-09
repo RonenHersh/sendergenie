@@ -11,6 +11,7 @@ import { campaignRoutes } from './routes/campaigns.js'
 import { conversationRoutes } from './routes/conversations.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { settingsRoutes } from './routes/settings.js'
+import { appointmentRoutes } from './routes/appointments.js'
 import { startSenderWorker } from './workers/sender.worker.js'
 import { startAIResponderWorker } from './workers/ai-responder.worker.js'
 
@@ -59,6 +60,7 @@ await app.register(async (protectedApp) => {
   await protectedApp.register(campaignRoutes)
   await protectedApp.register(conversationRoutes)
   await protectedApp.register(settingsRoutes)
+  await protectedApp.register(appointmentRoutes)
 }, { prefix: '/api' })
 
 // ── Health check ──────────────────────────────────────────────────────────────

@@ -1,18 +1,62 @@
 'use client'
 
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
-import { Settings, Smartphone, Key, Bell, Users, Shield, ChevronLeft, Check, ExternalLink } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Smartphone, Key, Users, Shield, Check, ExternalLink, Bot } from 'lucide-react'
 import { useAuthStore } from '../../../store/auth'
 import { api } from '../../../lib/api'
 import toast from 'react-hot-toast'
 
 const SECTIONS = [
   { id: 'whatsapp', icon: Smartphone, label: 'חיבור WhatsApp' },
+  { id: 'ai',       icon: Bot,        label: 'הגדרות AI' },
   { id: 'account',  icon: Key,        label: 'חשבון' },
   { id: 'team',     icon: Users,      label: 'צוות' },
   { id: 'billing',  icon: Shield,     label: 'תכנית ותשלום' },
 ]
+
+const GOAL_OPTIONS = [
+  { value: 'appointments', label: 'תאום פגישות / הדגמות' },
+  { value: 'sales',        label: 'מכירות ישירות' },
+  { value: 'support',      label: 'שירות לקוחות' },
+  { value: 'leads',        label: 'איסוף לידים' },
+  { value: 'other',        label: 'אחר' },
+]
+
+function buildSystemPrompt(fields: {
+  businessName: string
+  description: string
+  prices: string
+  hours: string
+  address: string
+  goal: string
+  contactPhone: string
+  extraInfo: string
+}) {
+  const goalMap: Record<string, string> = {
+    appointments: 'לתאם פגישה או הדגמה אצלנו',
+    sales: 'לסגור עסקה ולמכור ללקוח',
+    support: 'לתת שירות ולפתור בעיות',
+    leads: 'לאסוף פרטים ולזהות לידים רלוונטיים',
+    other: 'לעזור ללקוח',
+  }
+
+  const lines = [
+    `אתה נציג של ${fields.businessName}. ענה תמיד בעברית בסגנון WhatsApp — קצר, חם, אנושי.`,
+    `התנהל בטבעיות: אם הלקוח אומר שלום — ענה שלום. הבן מה הלקוח צריך, ורק אז הצג פתרון רלוונטי. אל תחזור על אותו משפט פעמיים.`,
+    ``,
+    `פרטי העסק:`,
+  ]
+  if (fields.description) lines.push(`- ${fields.description}`)
+  if (fields.prices)      lines.push(`- מחירים: ${fields.prices}`)
+  if (fields.hours)       lines.push(`- שעות פתיחה: ${fields.hours}`)
+  if (fields.address)     lines.push(`- כתובת: ${fields.address}`)
+  if (fields.contactPhone) lines.push(`- לתיאום / שירות בשטח: ${fields.contactPhone}`)
+  if (fields.extraInfo)   lines.push(`- ${fields.extraInfo}`)
+  if (fields.goal)        lines.push(``, `המטרה שלך: ${goalMap[fields.goal] ?? fields.goal}`)
+
+  return lines.join('\n')
+}
 
 export default function SettingsPage() {
   const { user, workspace } = useAuthStore()
@@ -21,17 +65,49 @@ export default function SettingsPage() {
   const [waapiConfig, setWaapiConfig] = useState({ instance_id: '', token: '' })
   const [metaConfig, setMetaConfig] = useState({ phone_number_id: '', access_token: '', verify_token: '' })
   const [saved, setSaved] = useState(false)
+  const [aiSaved, setAiSaved] = useState(false)
+  const [aiEnabled, setAiEnabled] = useState(false)
+  const [aiFields, setAiFields] = useState({
+    businessName: workspace?.name ?? '',
+    description: '',
+    prices: '',
+    hours: '',
+    address: '',
+    goal: 'appointments',
+    contactPhone: '',
+    extraInfo: '',
+  })
+
+  useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const res = await api.get<{ workspace: { ai_enabled: boolean; ai_system_prompt: string | null }; brand_guide: { content: string } | null }>('/api/settings')
+      setAiEnabled(res.data.workspace.ai_enabled)
+      return res.data
+    },
+  })
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const config = provider === 'waapi'
         ? { waapi_instance_id: waapiConfig.instance_id, waapi_token: waapiConfig.token }
         : { meta_phone_number_id: metaConfig.phone_number_id, meta_access_token: metaConfig.access_token, meta_verify_token: metaConfig.verify_token }
-      // TODO: wire to API endpoint
-      await new Promise(r => setTimeout(r, 800))
+      await api.post('/api/settings/whatsapp', { provider, config })
     },
     onSuccess: () => { toast.success('ההגדרות נשמרו!'); setSaved(true); setTimeout(() => setSaved(false), 3000) },
     onError: () => toast.error('שגיאה בשמירת ההגדרות'),
+  })
+
+  const saveAiMutation = useMutation({
+    mutationFn: async () => {
+      const prompt = buildSystemPrompt({ ...aiFields, businessName: aiFields.businessName || workspace?.name || '' })
+      await api.post('/api/settings/ai', {
+        ai_enabled: aiEnabled,
+        ai_system_prompt: prompt,
+      })
+    },
+    onSuccess: () => { toast.success('הגדרות AI נשמרו!'); setAiSaved(true); setTimeout(() => setAiSaved(false), 3000) },
+    onError: () => toast.error('שגיאה בשמירת הגדרות AI'),
   })
 
   return (
@@ -142,6 +218,79 @@ export default function SettingsPage() {
               {saveMutation.isPending
                 ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : saved ? <><Check className="w-4 h-4" /> נשמר!</> : 'שמור הגדרות'
+              }
+            </button>
+          </div>
+        )}
+
+        {section === 'ai' && (
+          <div className="max-w-xl space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">הגדרות AI</h2>
+              <p className="text-gray-500 text-sm">ענה על השאלות הבאות ואנחנו נבנה לך את הבוט אוטומטית</p>
+            </div>
+
+            {/* AI toggle */}
+            <div className="flex items-center justify-between bg-gray-900 border border-white/10 rounded-2xl p-5">
+              <div>
+                <div className="text-white font-medium text-sm">הפעל בוט AI</div>
+                <div className="text-gray-500 text-xs mt-0.5">הבוט יענה אוטומטית לפניות נכנסות</div>
+              </div>
+              <button onClick={() => setAiEnabled(e => !e)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${aiEnabled ? 'bg-green-500' : 'bg-gray-700'}`}>
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${aiEnabled ? 'right-1' : 'right-7'}`} />
+              </button>
+            </div>
+
+            {/* Fields */}
+            <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 space-y-4">
+              <h3 className="font-semibold text-white text-sm">פרטי העסק</h3>
+
+              {[
+                { key: 'businessName',  label: 'שם העסק',                    placeholder: 'שר טכנולוגיות' },
+                { key: 'description',   label: 'מה אתם מוכרים / מציעים?',    placeholder: 'מכונות טיח גבס ושחור' },
+                { key: 'prices',        label: 'מחירים (אופציונלי)',           placeholder: 'החל מ-26,000 ₪' },
+                { key: 'hours',         label: 'שעות פתיחה',                 placeholder: 'א-ה 08:00-17:00' },
+                { key: 'address',       label: 'כתובת (אופציונלי)',           placeholder: 'האורג 7, נתניה' },
+                { key: 'contactPhone',  label: 'טלפון שירות / תיאום',        placeholder: '054-0000000' },
+                { key: 'extraInfo',     label: 'מידע נוסף (אופציונלי)',       placeholder: 'מידע שחשוב לבוט לדעת...' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="block text-xs font-medium text-gray-400 mb-1.5">{f.label}</label>
+                  <input
+                    value={aiFields[f.key as keyof typeof aiFields]}
+                    onChange={e => setAiFields(p => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    dir="rtl"
+                    className="w-full bg-gray-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-green-500 transition-colors placeholder:text-gray-600"
+                  />
+                </div>
+              ))}
+
+              {/* Goal */}
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">מה המטרה של הבוט?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {GOAL_OPTIONS.map(g => (
+                    <button key={g.value} onClick={() => setAiFields(p => ({ ...p, goal: g.value }))}
+                      className={`text-right px-3 py-2 rounded-xl text-xs border transition-all ${
+                        aiFields.goal === g.value
+                          ? 'border-green-500 bg-green-500/10 text-green-400'
+                          : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-300'
+                      }`}>
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button onClick={() => void saveAiMutation.mutateAsync()}
+              disabled={saveAiMutation.isPending}
+              className="bg-green-500 hover:bg-green-400 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-colors">
+              {saveAiMutation.isPending
+                ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : aiSaved ? <><Check className="w-4 h-4" /> נשמר!</> : 'שמור הגדרות AI'
               }
             </button>
           </div>

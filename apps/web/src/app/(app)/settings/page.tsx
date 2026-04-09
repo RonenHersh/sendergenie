@@ -139,8 +139,38 @@ export default function SettingsPage() {
   useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
-      const res = await api.get<{ workspace: { ai_enabled: boolean; ai_system_prompt: string | null }; brand_guide: { content: string } | null }>('/api/settings')
-      setAiEnabled(res.data.workspace.ai_enabled)
+      const res = await api.get<{
+        workspace: {
+          ai_enabled: boolean
+          ai_system_prompt: string | null
+          ai_setup_fields: Record<string, unknown> | null
+          whatsapp_provider: 'waapi' | 'meta'
+          whatsapp_config: Record<string, string> | null
+        }
+        brand_guide: { content: string } | null
+      }>('/api/settings')
+
+      const ws = res.data.workspace
+      setAiEnabled(ws.ai_enabled)
+
+      // Pre-populate WhatsApp config
+      if (ws.whatsapp_provider) setProvider(ws.whatsapp_provider)
+      if (ws.whatsapp_config) {
+        if (ws.whatsapp_provider === 'waapi') {
+          setWaapiConfig({
+            instance_id: (ws.whatsapp_config['waapi_instance_id'] as string) ?? '',
+            token: (ws.whatsapp_config['waapi_token'] as string) ?? '',
+          })
+        }
+      }
+
+      // Pre-populate AI wizard fields
+      const f = ws.ai_setup_fields ?? {}
+      if (Object.keys(f).length > 0) {
+        setAiFields(prev => ({ ...prev, ...(f as typeof prev) }))
+        if (f['schedule']) setSchedule(f['schedule'] as DaySchedule[])
+      }
+
       return res.data
     },
   })
@@ -163,6 +193,7 @@ export default function SettingsPage() {
       await api.post('/api/settings/ai', {
         ai_enabled: aiEnabled,
         ai_system_prompt: prompt,
+        ai_setup_fields: { ...aiFields, schedule },
       })
     },
     onSuccess: () => { toast.success('הגדרות AI נשמרו!'); setAiSaved(true); setTimeout(() => setAiSaved(false), 3000) },

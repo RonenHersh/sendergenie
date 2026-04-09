@@ -37,6 +37,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
         whatsapp_config: workspace.whatsapp_config,
         ai_enabled: workspace.ai_enabled,
         ai_system_prompt: workspace.ai_system_prompt,
+        ai_setup_fields: (workspace as Record<string, unknown>)['ai_setup_fields'] ?? {},
       },
       brand_guide: brandGuide ?? null,
     })
@@ -70,10 +71,11 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     const workspaceId = request.workspaceId
 
     const body = z.object({
-      ai_enabled:      z.boolean(),
+      ai_enabled:       z.boolean(),
       ai_system_prompt: z.string().optional(),
+      ai_setup_fields:  z.record(z.unknown()).optional(),
       brand_guide_content: z.string().optional(),
-      conversion_goal: z.string().optional(),
+      conversion_goal:  z.string().optional(),
     }).parse(request.body)
 
     // Update workspace AI settings
@@ -82,6 +84,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       .set({
         ai_enabled: body.ai_enabled,
         ai_system_prompt: body.ai_system_prompt,
+        ...(body.ai_setup_fields ? { ai_setup_fields: body.ai_setup_fields } as Record<string, unknown> : {}),
         updated_at: new Date(),
       })
       .where(eq(workspaces.id, workspaceId))
